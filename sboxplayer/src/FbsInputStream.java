@@ -66,7 +66,7 @@ class FbsInputStream extends InputStream {
     byte[] b = new byte[12];
     readFully(b);
 
-    if (b[0] != 'F' || b[1] != 'B' || b[2] != 'S' || b[3] != ' ' ||
+    if (b[0] != 'S' || b[1] != 'B' || b[2] != 'F' || b[3] != ' ' ||
         b[4] != '0' || b[5] != '0' || b[6] != '1' || b[7] != '.' ||
         b[8] < '0' || b[8] > '9' || b[9] < '0' || b[9] > '9' ||
         b[10] < '0' || b[10] > '9' || b[11] != '\n') {
@@ -231,7 +231,7 @@ class FbsInputStream extends InputStream {
     }
 
     if (seekOffset >= 0) {
-      if (timeOffset >= seekOffset) {
+      if (timeOffset > seekOffset) {
         startTime = System.currentTimeMillis() - seekOffset;
         seekOffset = -1;
       } else {
@@ -245,7 +245,14 @@ class FbsInputStream extends InputStream {
         break;
       }
       try {
-        wait(timeDiff);
+        long viewerWaitTime=2000;
+        if(timeDiff < viewerWaitTime) {
+           wait(timeDiff);              
+        } else {
+          //Accelerate the wait time   
+          wait(viewerWaitTime);
+          startTime = startTime - (timeDiff - viewerWaitTime); 
+        }        	         
       } catch (InterruptedException e) {
       }
       waitWhilePaused();
