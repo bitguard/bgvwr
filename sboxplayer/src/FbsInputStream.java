@@ -214,7 +214,7 @@ class FbsInputStream extends InputStream {
   public void addObserver(Observer target) {
     obs = target;
   }
-
+   
   //
   // Methods for internal use.
   //
@@ -346,6 +346,22 @@ class FbsInputStream extends InputStream {
 
     return true;
   }
-
+  
+  long skipFully(long numbytes) throws IOException {
+    if (numbytes <= 0) {
+	  return 0;
+    }
+    long n = numbytes;
+    int buflen = (int) Math.min(32756, n);
+    byte data[] = new byte[buflen];
+    while (n > 0) {
+      int r = in.read(data, 0, (int) Math.min((long) buflen, n));
+	  if (r < 0) {
+        break;
+      }
+      n -= r;
+    }
+    return numbytes - n;
+  }
 }
 

@@ -133,7 +133,7 @@ public class RfbPlayer extends java.applet.Applet
       FbsConnection conn = new FbsConnection(sessionURL, idxPrefix, applet);
       fbs = conn.connect(initialTimeOffset);
       rfb = new RfbProto(fbs);
-
+      fbs.skipFully(conn.skipByteCount);      
       vc = new VncCanvas(this);
       gbc.weightx = 1.0;
       gbc.weighty = 1.0;
@@ -192,7 +192,8 @@ public class RfbPlayer extends java.applet.Applet
           }
           fbs.close();
           fbs = conn.connect(newTimeOffset);
-          rfb.newSession(fbs);
+          rfb.newSession(fbs); 
+          fbs.skipFully(conn.skipByteCount);
           vc.updateFramebufferSize();
         } catch (NullPointerException e) {
           // catching this causes a hang with 1.4.1 JVM's under Win32 IE

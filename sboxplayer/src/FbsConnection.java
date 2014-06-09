@@ -30,8 +30,10 @@ import java.applet.Applet;
 public class FbsConnection {
 
   URL fbsURL;
+  URL sbiURL;
   URL fbiURL;
   URL fbkURL;
+  long skipByteCount;
 
   /** Index data loaded from the .fbi file. */
   FbsEntryPoint[] indexData;
@@ -49,6 +51,14 @@ public class FbsConnection {
       base = applet.getCodeBase();
     }
     fbsURL = new URL(base, fbsLocation);
+    
+    sbiURL = null;
+    int dot = fbsLocation.lastIndexOf('.');
+    if(dot>0) {    	
+      String sbiLocation = fbsLocation.substring(0,dot)+".sbi";
+      sbiURL = new URL(base, sbiLocation);
+    }
+    
     fbiURL = fbkURL = null;
     if (indexLocationPrefix != null) {
       try {
@@ -64,6 +74,11 @@ public class FbsConnection {
     numIndexRecords = 0;
     rfbInitData = null;
     loadIndex();
+    
+    // Try to load .sbi Index file. .sbi and .fbi can not conexist.
+    numIndexRecords = 0;
+    skipByteCount = 0;
+    loadSbiIndex();
   }
 
   FbsInputStream connect(long timeOffset) throws IOException {
@@ -71,7 +86,13 @@ public class FbsConnection {
 
     // Try efficient seeking first.
     int i = indexForTimeOffset(timeOffset);
-    if (i >= 0) {
+    if(i >=0 ) {
+      FbsEntryPoint entryPoint = indexData[i];
+      skipByteCount = entryPoint.fbs_fpos;
+    }
+    else
+      skipByteCount = 0;
+    if (i >= 0 & fbiURL!=null) {
       FbsEntryPoint entryPoint = indexData[i];
       if (entryPoint.key_size < entryPoint.fbs_fpos) {
         try {
@@ -86,7 +107,11 @@ public class FbsConnection {
       }
     }
 
-    // Fallback to the dumb version of openFbsFile().
+    // Try BG efficient Seeking, to keep it simple just read the index and 
+    // set the first Jump point.
+    	
+    
+    // Fallback to the regular version of openFbsFile().
     if (fbs == null) {
       fbs = openFbsFile();
     }
@@ -186,6 +211,75 @@ public class FbsConnection {
     }
   }
 
+  /**
+   * Load index data from .sbi file.
+   */
+  private void loadSbiIndex() {
+    // Loading .fbi makes sense only if both .fbi and .fbk files are available.
+    if (sbiURL != null) {
+      FbsEntryPoint[] newIndex;	
+      int numRecordsRead = 0;
+      try {
+        // Connect.
+        URLConnection connection = sbiURL.openConnection();
+        connection.connect();
+        DataInputStream is = new DataInputStream(connection.getInputStream());
+
+        // Check file signature.
+        byte[] b = new byte[12];
+        is.readFully(b);
+        if (b[0] != 'S' || b[1] != 'B' || b[2] != 'I' || b[3] != ' ' ||
+            b[4] != '0' || b[5] != '0' || b[6] != '1' || b[7] != '.' ||
+            b[8] < '0' || b[8] > '9' || b[9] < '0' || b[9] > '9' ||
+            b[10] < '0' || b[10] > '9' || b[11] != '\n') {
+          System.err.println("Could not load index: bad .sbi file signature");
+          return;
+        }
+        
+        int maxRecorded = 5000;   // at least to cover 5000/2 = 2500 mins.                          
+        newIndex = new FbsEntryPoint[maxRecorded]; // Hardcoded for now
+                                             // May move to linked list?        
+        // Load index from the .sbi file.
+        try {
+          for (int i = 0; i < maxRecorded; i++) {
+            FbsEntryPoint record = new FbsEntryPoint();
+            record.timestamp = (long)is.readInt() & 0xFFFFFFFFL;
+            record.fbs_fpos = (long)is.readLong();
+            record.key_fpos = 0;
+            record.fbs_skip = 0;
+            record.key_size = 0;
+            newIndex[i] = record;
+            numRecordsRead++;
+          }
+        } catch (EOFException e) {
+          System.err.println("Preliminary end of .sbi file");
+        } catch (IOException e) {
+          System.err.println("Ignored exception: " + e);
+        }                
+      } catch (FileNotFoundException e) {
+        System.err.println("Could not load index: .sbi file not found: " +
+                           e.getMessage());
+        return;
+      } catch (IOException e) {
+        System.err.println(e);
+        System.err.println("Could not load index: failed to load .sbi file");
+        return;
+      }
+      // Check correctness of the data read.
+      for (int i = 1; i < numRecordsRead; i++) {
+        if (newIndex[i].timestamp <= newIndex[i - 1].timestamp) {
+          System.err.println("Could not load index: wrong .sbi file contents");
+          return;
+        }
+      }
+      
+      // Loaded successfully.
+      indexData = newIndex;
+      numIndexRecords = numRecordsRead;
+      System.err.println("Loaded index data, " + numRecordsRead + " records");          
+    }    
+  }
+  
   private int indexForTimeOffset(long timeOffset) {
     if (timeOffset > 0 && indexData != null && numIndexRecords > 0) {
       int i = 0;
