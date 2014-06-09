@@ -74,11 +74,17 @@ bgstatmsg = {
     BG_STAT_MSG_ENCODE_TIGHT:   'Frame Encode Type Tight',
 }
 
+firstFrameUpdateTime = 0
+lastFrameUpdateTime = 0
+currentTime_in_ms = 0
+
 def timeEvent(buffer,f):
     (eventtype,b2,minisecond,second) = struct.unpack('BBHI',buffer)
     timeval = datetime.datetime.strptime(time.ctime(second),
             "%a %b %d %H:%M:%S %Y" )
     print "%s.%d"%(timeval,minisecond)
+    global currentTime_in_ms
+    currentTime_in_ms = (second * 1000) +minisecond
 
 def connectedEvent(buffer,f):
     print "Connected"
@@ -101,6 +107,14 @@ def authSuccessEvent(buffer,f):
 def frameUpdateEvent(buffer,f):
     (eventtype,action,RectNum) = struct.unpack('BBH',buffer)
     print "Frame Update RectNo",RectNum
+    global firstFrameUpdateTime
+    global currentTime_in_ms
+    global lastFrameUpdateTime
+    lastFrameUpdateTime = currentTime_in_ms
+    if 0 == firstFrameUpdateTime:
+        firstFrameUpdateTime = currentTime_in_ms
+    
+        
 
 def closeEvent(buffer,f):
     print "Connection Close"
@@ -165,6 +179,12 @@ def main():
     while True:
         byte=f.read(1)
         if byte =="":
+            print("End of Bglog Parsing")
+            timeval = datetime.datetime.strptime(time.ctime(firstFrameUpdateTime/1000),
+                      "%a %b %d %H:%M:%S %Y" )
+            print "Frame recording started at %s.%d"%(timeval,firstFrameUpdateTime%1000)
+            print "Duration in Second: ",(lastFrameUpdateTime-firstFrameUpdateTime)/1000
+            
             break
         (item,)=struct.unpack('B',byte)
         #print "0x%x"%item
