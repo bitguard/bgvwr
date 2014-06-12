@@ -117,7 +117,7 @@ def frameUpdateEvent(buffer,f):
         
 
 def closeEvent(buffer,f):
-    print "Connection Close"
+    print "File Closed Normally"
 
 def frameBufferUpdate(buffer,f):
     (eventtype,action,RectNum,length) = struct.unpack('BBHI',buffer)

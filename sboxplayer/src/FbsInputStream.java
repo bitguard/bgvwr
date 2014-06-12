@@ -70,7 +70,7 @@ class FbsInputStream extends InputStream {
         b[4] != '0' || b[5] != '0' || b[6] != '1' || b[7] != '.' ||
         b[8] < '0' || b[8] > '9' || b[9] < '0' || b[9] > '9' ||
         b[10] < '0' || b[10] > '9' || b[11] != '\n') {
-      throw new IOException("Incorrect FBS file signature");
+      throw new IOException("Incorrect SBF file signature");
     }
   }
 

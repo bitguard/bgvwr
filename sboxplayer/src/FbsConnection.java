@@ -252,7 +252,7 @@ public class FbsConnection {
             numRecordsRead++;
           }
         } catch (EOFException e) {
-          System.err.println("Preliminary end of .sbi file");
+          System.err.println("end of .sbi file");
         } catch (IOException e) {
           System.err.println("Ignored exception: " + e);
         }                
