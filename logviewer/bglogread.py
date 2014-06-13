@@ -143,7 +143,7 @@ def serverCutTextEvent(buffer,f):
         f.read(align-mod)
         
 def statMessage(buffer,f):
-    (eventtype,action,b3,b4,value)=struct.unpack('BBBBI',buffer)
+    (eventtype,action,b3,b4,i1,value)=struct.unpack('BBBBIQ',buffer)
     if action in bgstatmsg:
         print "Stat Msg",bgstatmsg[action],value
 
@@ -159,7 +159,7 @@ bglogitem = {
     BG_KEY_EVENT:(4,keyEvent),
     BG_POINT_EVENT:(8,pointEvent),
     BG_FRAME_UPDATE_EVENT:(4,frameUpdateEvent),
-    BG_STAT_MESSAGE_EVENT:(8,statMessage),
+    BG_STAT_MESSAGE_EVENT:(16,statMessage),
     BG_FRAME_BUFFER_UPDATE: (8,frameBufferUpdate),
     BG_SERVER_CUT_TEXT_EVENT: (4,serverCutTextEvent),
     BG_FULL_FRAME_MARK: (8,insertfullframeMark)
