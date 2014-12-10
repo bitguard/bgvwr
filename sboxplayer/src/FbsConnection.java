@@ -90,8 +90,10 @@ public class FbsConnection {
       FbsEntryPoint entryPoint = indexData[i];
       skipByteCount = entryPoint.fbs_fpos;
     }
-    else
+    else {
       skipByteCount = 0;
+      RfbSharedStatic.fbsOffset = 0;
+    }
     if (i >= 0 & fbiURL!=null) {
       FbsEntryPoint entryPoint = indexData[i];
       if (entryPoint.key_size < entryPoint.fbs_fpos) {
@@ -113,7 +115,7 @@ public class FbsConnection {
     
     // Fallback to the regular version of openFbsFile().
     if (fbs == null) {
-      fbs = openFbsFile();
+      fbs = openFbsFile(skipByteCount);
     }
 
     // Seek to the specified position.
@@ -299,8 +301,20 @@ public class FbsConnection {
    * @return a newly created FBS input stream.
    * @throws java.io.IOException if an I/O exception occurs.
    */
-  private FbsInputStream openFbsFile() throws IOException {
-    return new FbsInputStream(fbsURL.openStream());
+  private FbsInputStream openFbsFile(long skipByteCount) throws IOException {
+    // Seek to the keyframe.
+    if(skipByteCount == 0) {
+      return new FbsInputStream(fbsURL.openStream());
+    }
+    else {
+      skipByteCount += RfbSharedStatic.fbsOffset;
+      InputStream is = openHttpByteRange(fbsURL, skipByteCount, -1);
+      if (is == null) {
+        return null;
+      }
+    
+      return new FbsInputStream(is, 0, null, 0);
+    }
   }
 
   /**

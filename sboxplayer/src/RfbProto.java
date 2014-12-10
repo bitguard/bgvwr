@@ -98,7 +98,7 @@ class RfbProto {
    * @throws java.io.IOException
    */
   RfbProto(InputStream is) throws Exception {
-    newSession(is);
+    newSession(is, 0);
   }
 
   /**
@@ -108,15 +108,17 @@ class RfbProto {
    * @throws java.lang.Exception
    * @throws java.io.IOException
    */
-  public void newSession(InputStream is) throws Exception {
+  public void newSession(InputStream is, long skipByteCount) throws Exception {
 
     this.is = new DataInputStream(is);
 
-    readVersionMsg();
-    if (readAuthScheme() != NoAuth) {
-      throw new Exception("Wrong authentication type in the session file");
+    if(skipByteCount == 0) {
+      readVersionMsg();
+      if (readAuthScheme() != NoAuth) {
+        throw new Exception("Wrong authentication type in the session file");
+      }
+      readServerInit();
     }
-    readServerInit();
   }
 
   //
@@ -132,6 +134,8 @@ class RfbProto {
       b[i] = (byte)'0';
 
     is.readFully(b);
+    //length:4 content:12 timeOffset:4
+    RfbSharedStatic.fbsOffset += (4 + 12 + 4);
 
     if ((b[0] != 'R') || (b[1] != 'F') || (b[2] != 'B') || (b[3] != ' ') ||
         (b[4] < '0') || (b[4] > '9') || (b[5] < '0') || (b[5] > '9') || (b[6] <
@@ -151,6 +155,9 @@ class RfbProto {
   //
   int readAuthScheme() throws IOException {
     int authScheme = is.readInt();
+    
+    //length:4 content:4 timeOffset:4
+    RfbSharedStatic.fbsOffset += (4 + 4 + 4);
 
     switch (authScheme) {
 
@@ -199,6 +206,8 @@ class RfbProto {
     byte[] name = new byte[nameLength];
     is.readFully(name);
     desktopName = new String(name);
+    //length:4 content:20 nameLength:4 name:aligned size timeOffset:4
+    RfbSharedStatic.fbsOffset += ((4 + 20 + 4 + nameLength + 3 + 4) & 0xFFFFFFFC);
   }
 
 

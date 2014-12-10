@@ -65,6 +65,8 @@ class FbsInputStream extends InputStream {
 
     byte[] b = new byte[12];
     readFully(b);
+    //content:12
+    RfbSharedStatic.fbsOffset += 12;
 
     if (b[0] != 'S' || b[1] != 'B' || b[2] != 'F' || b[3] != ' ' ||
         b[4] != '0' || b[5] != '0' || b[6] != '1' || b[7] != '.' ||
