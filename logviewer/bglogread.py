@@ -53,6 +53,7 @@ BG_STAT_MESSAGE_EVENT=0x87
 BG_FRAME_BUFFER_UPDATE=0x88
 BG_SERVER_CUT_TEXT_EVENT = 0x89
 BG_FULL_FRAME_MARK = 0x8a
+BG_CLIENT_CUT_TEXT_EVENT = 0x8b
 
 BG_STAT_MSG_KEYPRESSED = 0x1
 BG_STAT_MSG_POINTPRESSED = 0x2
@@ -141,6 +142,19 @@ def serverCutTextEvent(buffer,f):
     #print "mod",mod
     if mod>0:
         f.read(align-mod)
+
+
+def clientCutTextEvent(buffer,f):
+    (eventtype,action,length) = struct.unpack('BBH',buffer)
+    print "Client Clipboard Text Event, len:",length
+    text = f.read(length)
+    print text
+    #check alignment
+    align=4
+    mod=length%align
+    #print "mod",mod
+    if mod>0:
+        f.read(align-mod)
         
 def statMessage(buffer,f):
     (eventtype,action,b3,b4,i1,value)=struct.unpack('BBBBIQ',buffer)
@@ -162,7 +176,8 @@ bglogitem = {
     BG_STAT_MESSAGE_EVENT:(16,statMessage),
     BG_FRAME_BUFFER_UPDATE: (8,frameBufferUpdate),
     BG_SERVER_CUT_TEXT_EVENT: (4,serverCutTextEvent),
-    BG_FULL_FRAME_MARK: (8,insertfullframeMark)
+    BG_FULL_FRAME_MARK: (8,insertfullframeMark),
+    BG_CLIENT_CUT_TEXT_EVENT: (4,clientCutTextEvent),
 }
     
 def main():
